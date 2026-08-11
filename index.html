@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
+  <title>Симулятор Перекупа</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    
+    body {
+      background-color: #08090b;
+      color: #e0e6ed;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    
+    .game-card {
+      width: 100%; max-width: 420px; height: 840px;
+      background: #12151c url('https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=800&q=80') center/cover no-repeat;
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      border: 1px solid #2d333b;
+    }
+
+    .overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(180deg, rgba(10,12,16,0.82) 0%, rgba(15,18,24,0.92) 100%);
+      z-index: 1;
+    }
+
+    .content { position: relative; z-index: 2; display: flex; flex-direction: column; height: 100%; padding: 18px; }
+
+    .top-header { text-align: center; padding: 10px 0 5px 0; }
+    .top-header h1 {
+      font-size: 28px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #fff;
+      text-shadow: 0 4px 10px rgba(0,0,0,0.9);
+      font-style: italic;
+    }
+
+    .top-stats-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(18, 22, 28, 0.95);
+      border: 2px solid #383e47; border-radius: 14px;
+      padding: 12px 16px; margin: 12px 0;
+      box-shadow: inset 0 1px 3px rgba(255,255,255,0.05), 0 8px 16px rgba(0,0,0,0.7);
+    }
+    .top-stats-bar .stat-item { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; }
+    .top-stats-bar .money { color: #2ecc71; text-shadow: 0 0 8px rgba(46, 204, 113, 0.3); }
+    .top-stats-bar .xp { color: #f1c40f; }
+    .top-stats-bar .day { color: #ffffff; }
+
+    .screen { display: none; flex-direction: column; flex-grow: 1; overflow-y: auto; padding: 10px 0; }
+    .screen.active { display: flex; }
+
+    .garage-status-block {
+      background: rgba(18, 22, 28, 0.92);
+      border: 2px solid #343b44; border-radius: 16px;
+      padding: 18px 20px; margin: auto 0 20px 0; text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+    }
+    .garage-status-block h3 { font-size: 15px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 800; }
+    .garage-status-block .info { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .garage-status-block .slots { font-size: 20px; font-weight: 900; color: #ffffff; }
+    .garage-status-block .desc { font-size: 14px; color: #a3adc0; font-weight: 600; }
+
+    .button-block { margin-top: 0; padding-bottom: 10px; }
+    
+    .btn-large {
+      width: 100%; padding: 20px;
+      background: linear-gradient(180deg, #22272e 0%, #111418 100%);
+      border: 3px solid #ff7b00;
+      border-radius: 18px;
+      color: #fff; text-transform: uppercase; font-size: 24px; font-weight: 900;
+      letter-spacing: 1px; cursor: pointer;
+      box-shadow: 0 0 25px rgba(255, 123, 0, 0.65), inset 0 1px 2px rgba(255,255,255,0.2);
+      transition: all 0.15s ease-in-out;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+    }
+    .btn-large:active { transform: scale(0.97); box-shadow: 0 0 10px rgba(255, 123, 0, 0.4); }
+
+    .btn-day {
+      width: 100%; padding: 12px; margin-top: 12px;
+      background: rgba(255, 255, 255, 0.05); border: 1px solid #343b44; border-radius: 12px;
+      color: #9aa5b5; text-transform: uppercase; font-size: 12px; font-weight: 800;
+      cursor: pointer;
+    }
+
+    .card-list { display: flex; flex-direction: column; gap: 12px; }
+    
+    .item-card {
+      background: rgba(18, 22, 28, 0.95);
+      border: 1px solid #30363d; border-radius: 14px;
+      padding: 14px; text-align: left;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .item-card h3 { font-size: 16px; color: #ffffff; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; }
+    .item-card .info { font-size: 13px; color: #8b949e; line-height: 1.6; margin-bottom: 10px; }
+    .item-card .info span { color: #e6edf3; font-weight: 700; }
+    
+    .badge { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .badge-clean { background: rgba(56, 139, 253, 0.15); color: #58a6ff; border: 1px solid #388bfd; }
+    .badge-dirty { background: rgba(248, 81, 73, 0.15); color: #f85149; border: 1px solid #f85149; }
+
+    .btn-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .btn-sm { flex: 1; padding: 10px 12px; font-size: 13px; font-weight: 800; border-radius: 10px; border: none; cursor: pointer; text-align: center; }
+    .btn-primary { background: #238636; color: #fff; box-shadow: 0 2px 6px rgba(35, 134, 54, 0.4); }
+    .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #363b42; }
+    .btn-warning { background: #d29922; color: #fff; }
+    .btn-disabled { opacity: 0.4; pointer-events: none; }
+
+    .nav-bar {
+      display: flex; justify-content: space-between;
+      background: rgba(12, 14, 18, 0.98);
+      border: 2px solid #2d333b; border-radius: 18px;
+      padding: 6px; margin-top: auto;
+    }
+    .nav-btn {
+      flex: 1; background: transparent; border: none; color: #6e7681;
+      padding: 10px 0; font-size: 10px; font-weight: 900; cursor: pointer;
+      border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      transition: all 0.2s;
+    }
+    .nav-btn.active {
+      color: #ffffff; background: rgba(255, 123, 0, 0.12);
+      border: 1px solid rgba(255, 123, 0, 0.6);
+      box-shadow: 0 0 12px rgba(255, 123, 0, 0.25);
+    }
+    .nav-icon { font-size: 20px; }
+
+    .offer-card { background: #0d1117; border: 1px solid #e3b341; border-radius: 10px; padding: 10px; margin-top: 8px; font-size: 12px; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="game-card">
+  <div class="overlay"></div>
+  <div class="content">
+
+    <div class="top-header">
+      <h1>СИМУЛЯТОР ПЕРЕКУПА</h1>
+    </div>
+
+    <div class="top-stats-bar">
+      <div class="stat-item money">💰 <span id="money">$500</span></div>
+      <div class="stat-item xp">⭐ <span id="xp">0 XP</span></div>
+      <div class="stat-item day">📅 <span id="day">ДЕНЬ 1</span></div>
+    </div>
+
+    <!-- ЭКРАН 1: ГЛАВНАЯ -->
+    <div id="screen-main" class="screen active">
+      <div class="garage-status-block">
+        <h3>ГАРАЖ</h3>
+        <div class="info">
+          <p class="slots"><span id="garage-count">0</span> / <span id="garage-max">1</span> МЕСТО</p>
+          <p class="desc" id="garage-status">Гараж пуст</p>
+        </div>
+      </div>
+
+      <div class="button-block">
+        <button class="btn-large" onclick="quickSearch()">🔍 НАЙТИ АВТО</button>
+        <button class="btn-day" onclick="nextDayCycle()">⏭ ПЕРЕЙТИ К СЛЕДУЮЩЕМУ ДНЮ</button>
+      </div>
+    </div>
+
+    <!-- ЭКРАН 2: АВТО -->
+    <div id="screen-auto" class="screen">
+      <h2 style="font-size: 18px; margin-bottom: 12px; font-weight: 800;">АВТОРЫНОК</h2>
+      <div class="filter-bar" style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <select id="budget-filter" style="flex-grow: 1; background: #161b22; color: #fff; border: 1px solid #30363d; border-radius: 10px; padding: 8px; font-weight: bold;" onchange="renderMarket()">
+          <option value="999999">Все авто</option>
+          <option value="500">До $500</option>
+          <option value="1500">До $1,500</option>
+        </select>
+        <button class="btn-sm btn-secondary" onclick="renderMarket(true)" style="flex: 0 0 45px;">🔄</button>
+      </div>
+      <div id="market-list" class="card-list"></div>
+    </div>
+
+    <!-- ЭКРАН 3: ГАРАЖ -->
+    <div id="screen-garage" class="screen">
+      <h2 style="font-size: 18px; margin-bottom: 12px; font-weight: 800;">МОЙ ГАРАЖ</h2>
+      <div id="garage-list" class="card-list"></div>
+    </div>
+
+    <!-- ЭКРАН 4: НАВЫКИ -->
+    <div id="screen-skills" class="screen">
+      <h2 style="font-size: 18px; margin-bottom: 12px; font-weight: 800;">ПРОКАЧКА</h2>
+      <div id="skills-list" class="card-list"></div>
+    </div>
+
+    <!-- НИЖНЕЕ МЕНЮ -->
+    <div class="nav-bar">
+      <button class="nav-btn active" onclick="switchTab('main', this)"><span class="nav-icon">🏠</span>ГЛАВНАЯ</button>
+      <button class="nav-btn" onclick="switchTab('auto', this)"><span class="nav-icon">🌐</span>АВТО</button>
+      <button class="nav-btn" onclick="switchTab('garage', this)"><span class="nav-icon">🚗</span>ГАРАЖ</button>
+      <button class="nav-btn" onclick="switchTab('skills', this)"><span class="nav-icon">📊</span>НАВЫКИ</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const state = {
+    money: 500, xp: 0, day: 1, garageMax: 1,
+    skills: { bargain: 0, scout: 0, repair: 0 },
+    market: [], garage: []
+  };
+
+  const carTemplates = [
+    { name: "ВАЗ 2107", basePrice: 350 }, { name: "Audi 80", basePrice: 900 },
+    { name: "BMW E36", basePrice: 2200 }, { name: "Camry 30", basePrice: 5500 }
+  ];
+
+  const rnd = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const fM = (amt) => '$' + amt.toLocaleString();
+
+  function switchTab(screenId, btn) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-' + screenId).classList.add('active');
+    btn.classList.add('active');
+    if (screenId === 'garage') renderGarage();
+    if (screenId === 'skills') renderSkills();
+  }
+
+  function updateUI() {
+    document.getElementById('money').innerText = fM(state.money);
+    document.getElementById('xp').innerText = state.xp + ' XP';
+    document.getElementById('day').innerText = 'ДЕНЬ ' + state.day;
+    document.getElementById('garage-count').innerText = state.garage.length;
+    document.getElementById('garage-max').innerText = state.garageMax;
+    document.getElementById('garage-status').innerText = state.garage.length === 0 ? 'Гараж пуст' : `Авто в наличии: ${state.garage.length}`;
+  }
+
+  function quickSearch() {
+    switchTab('auto', document.querySelectorAll('.nav-btn')[1]);
+    renderMarket(true);
+  }
+
+  function nextDayCycle() {
+    state.day++;
+    state.garage.forEach(car => {
+      if (car.isListed) {
+        if (!car.offers) car.offers = [];
+        car.offers.forEach(o => o.daysLeft--);
+        car.offers = car.offers.filter(o => o.daysLeft > 0);
+        if (car.offers.length < 3 && Math.random() < 0.6) {
+          car.offers.push({ id: Date.now()+rnd(1,100), price: Math.floor(car.targetPrice * (0.85 + Math.random()*0.25)), daysLeft: 2 });
+        }
+      }
+    });
+    updateUI();
+    if (document.getElementById('screen-garage').classList.contains('active')) renderGarage();
+  }
+
+  function renderMarket(refresh = false) {
+    const list = document.getElementById('market-list');
+    const budget = parseInt(document.getElementById('budget-filter').value);
+    
+    if (refresh || state.market.length === 0) {
+      state.market = [];
+      const num = rnd(3, 5);
+      for (let i = 0; i < num; i++) {
+        const tmpl = carTemplates[rnd(0, carTemplates.length - 1)];
+        const body = rnd(30, 85); const engine = rnd(25, 90);
+        const realValue = Math.floor(tmpl.basePrice * ((body*0.4 + engine*0.6)/100));
+        const price = Math.floor(realValue * (0.8 + Math.random()*0.4));
+        
+        state.market.push({
+          id: Date.now()+i, name: tmpl.name, year: rnd(1993, 2008), km: rnd(120000, 320000),
+          price, bodyCondition: body, engineCondition: engine, isClean: Math.random() > 0.5, bargained: false
+        });
+      }
+    }
+
+    const filtered = state.market.filter(c => c.price <= budget);
+    if (filtered.length === 0) { list.innerHTML = '<p style="color:#8b949e; padding:10px;">Нет доступных объявлений</p>'; return; }
+
+    list.innerHTML = filtered.map(car => {
+      let scoutInfo = '';
+      if (state.skills.scout >= 1) { const avg = Math.floor((car.bodyCondition+car.engineCondition)/2); scoutInfo += `<br>Состояние: <b>${avg>70?'🟢':avg>45?'🟡':'🔴'}</b>`; }
+      if (state.skills.scout >= 2) scoutInfo += ` (Куз: <b>${car.bodyCondition}%</b> ДВС: <b>${car.engineCondition}%</b>)`;
+
+      return `
+        <div class="item-card">
+          <h3>${car.name} (${car.year}) <span class="badge ${car.isClean?'badge-clean':'badge-dirty'}">${car.isClean?'Чистая':'Грязная'}</span></h3>
+          <div class="info">Пробег: <span>${car.km.toLocaleString()} км</span> | Цена: <span style="color:#2ecc71; font-size:15px;">${fM(car.price)}</span>${scoutInfo}</div>
+          <div class="btn-row">
+            <button class="btn-sm btn-primary" onclick="buyCar(${car.id})">Купить</button>
+            ${state.skills.bargain>=1 ? `<button class="btn-sm btn-warning ${car.bargained?'btn-disabled':''}" onclick="bargainCar(${car.id})">${car.bargained?'Скидка!':'🤝 Торг'}</button>`:''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function bargainCar(id) {
+    const car = state.market.find(c => c.id === id); if (!car || car.bargained) return;
+    const discountPercent = state.skills.bargain === 1 ? 0.05 : 0.10;
+    car.price = Math.floor(car.price * (1-discountPercent)); car.bargained = true;
+    renderMarket();
+  }
+
+  function buyCar(id) {
+    if (state.garage.length >= state.garageMax) { alert("В гараже нет места!"); return; }
+    const carIdx = state.market.findIndex(c => c.id === id); const car = state.market[carIdx];
+    if (state.money < car.price) { alert("Недостаточно денег!"); return; }
+    state.money -= car.price; car.isListed = false; car.offers = []; car.targetPrice = Math.floor(car.price * 1.3);
+    state.market.splice(carIdx, 1); state.garage.push(car);
+    updateUI(); switchTab('garage', document.querySelectorAll('.nav-btn')[2]);
+  }
+
+  function renderGarage() {
+    const list = document.getElementById('garage-list');
+    if (state.garage.length === 0) { list.innerHTML = '<p style="color:#8b949e; padding:10px;">В гараже пустует место</p>'; return; }
+
+    list.innerHTML = state.garage.map((car, index) => {
+      const bodyRepair = Math.floor((100-car.bodyCondition)*8 * (state.skills.repair>=1 ? 0.6 : 1.0));
+      const engineRepair = Math.floor((100-car.engineCondition)*12 * (state.skills.repair>=3 ? 0.5 : 1.0));
+
+      let offersHtml = '';
+      if (car.isListed) {
+        offersHtml = car.offers && car.offers.length > 0 ? car.offers.map(o => `
+          <div class="offer-card">
+            🤝 Предложение: <b style="color:#2ecc71;">${fM(o.price)}</b> (Осталось ${o.daysLeft} дн.)
+            <div class="btn-row" style="margin-top:6px;">
+              <button class="btn-sm btn-primary" onclick="acceptOffer(${index}, ${o.id})">Принять</button>
+              <button class="btn-sm btn-secondary" onclick="rejectOffer(${index}, ${o.id})">Отклонить</button>
+            </div>
+          </div>
+        `).join('') : '<p style="font-size:11px; color:#f1c40f; margin-top:8px;">Ждем покупателей... (пропустите день)</p>';
+      }
+
+      return `
+        <div class="item-card">
+          <h3>${car.name} (${car.year}) <span class="badge ${car.isClean?'badge-clean':'badge-dirty'}">${car.isClean?'Чистая':'Грязная'}</span></h3>
+          <div class="info">Кузов: <b>${car.bodyCondition}%</b> | ДВС: <b>${car.engineCondition}%</b></div>
+          <div class="btn-row">
+            ${!car.isClean? `<button class="btn-sm btn-secondary" onclick="washCar(${index})">🧽 Помыть ($20)</button>`:''}
+            ${car.bodyCondition<100? `<button class="btn-sm btn-secondary" onclick="repair(${index},'body',${bodyRepair})">🛠 Кузов (${fM(bodyRepair)})</button>`:''}
+            ${car.engineCondition<100? `<button class="btn-sm btn-secondary" onclick="repair(${index},'engine',${engineRepair})">⚙️ ДВС (${fM(engineRepair)})</button>`:''}
+          </div>
+          <div style="margin-top: 10px; border-top: 1px dashed #30363d; padding-top: 10px;">
+            ${!car.isListed? `
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="number" id="price-${index}" value="${car.targetPrice}" style="width:90px; background:#161b22; color:#fff; border:1px solid #30363d; padding:8px; border-radius:8px; font-weight:bold;">
+                <button class="btn-sm btn-primary" onclick="listCar(${index})">Выставить на продажу</button>
+              </div>` : 
+              `Продается за: <b>${fM(car.targetPrice)}</b>${offersHtml}`
+            }
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function washCar(idx) { if (state.money < 20) return; state.money -= 20; state.garage[idx].isClean = true; updateUI(); renderGarage(); }
+
+  function repair(idx, type, cost) {
+    if (state.money < cost) { alert("Мало денег!"); return; }
+    state.money -= cost;
+    if (type === 'body') state.garage[idx].bodyCondition = 100;
+    else state.garage[idx].engineCondition = 100;
+    updateUI(); renderGarage();
+  }
+
+  function listCar(idx) { state.garage[idx].targetPrice = parseInt(document.getElementById(`price-${idx}`).value); state.garage[idx].isListed = true; state.garage[idx].offers = []; renderGarage(); }
+
+  function acceptOffer(carIdx, offerId) {
+    const car = state.garage[carIdx]; const offer = car.offers.find(o => o.id === offerId);
+    state.money += offer.price; state.xp += Math.max(15, Math.floor((offer.price-car.price)/10)+20);
+    state.garage.splice(carIdx, 1); updateUI(); renderGarage();
+  }
+
+  function rejectOffer(carIdx, offerId) {
+    const car = state.garage[carIdx]; car.offers = car.offers.filter(o => o.id !== offerId); renderGarage();
+  }
+
+  function renderSkills() {
+    const list = document.getElementById('skills-list');
+    list.innerHTML = `
+      <div class="item-card">
+        <h3>🤝 Торговля (Уровень ${state.skills.bargain})</h3>
+        <div class="info">Позволяет снижать цену авто при покупке.</div>
+        <button class="btn-sm btn-primary ${state.skills.bargain>=2?'btn-disabled':''}" onclick="upgradeSkill('bargain', 100)">Прокачать ($100)</button>
+      </div>
+      <div class="item-card">
+        <h3>🔍 Подбор (Уровень ${state.skills.scout})</h3>
+        <div class="info">Открывает точные характеристики и состояние мотора/кузова.</div>
+        <button class="btn-sm btn-primary ${state.skills.scout>=2?'btn-disabled':''}" onclick="upgradeSkill('scout', 150)">Прокачать ($150)</button>
+      </div>
+    `;
+  }
+
+  function upgradeSkill(skill, cost) {
+    if (state.money < cost) { alert("Недостаточно денег!"); return; }
+    state.money -= cost; state.skills[skill]++; updateUI(); renderSkills();
+  }
+
+  updateUI();
+</script>
+</body>
+</html>
