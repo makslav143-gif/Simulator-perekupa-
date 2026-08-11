@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Перекуп</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#101114;color:#fff}.wrap{max-width:700px;margin:auto;padding:20px}.card{background:#1b1d22;border-radius:18px;padding:20px;margin:14px 0}h1{margin-top:0}.money{font-size:32px;font-weight:700}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}button{width:100%;padding:15px;border:0;border-radius:12px;background:#2f80ed;color:white;font-size:17px;font-weight:700;margin-top:10px}button:disabled{opacity:.4}.car{font-size:20px;font-weight:700}.muted{color:#aaa}.row{display:flex;justify-content:space-between;margin:8px 0}#log{max-height:180px;overflow:auto;font-size:14px;color:#ccc}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🚗 Перекуп</h1>
+<div class="card"><div class="muted">Баланс</div><div class="money" id="money">$10 000</div></div>
+<div class="stats"><div class="card"><div class="muted">Репутация</div><b id="rep">1</b></div><div class="card"><div class="muted">Продано авто</div><b id="sold">0</b></div></div>
+<div class="card"><div class="car" id="carName"></div><div class="row"><span>Цена продавца</span><b id="buyPrice"></b></div><div class="row"><span>Ремонт</span><b id="repair"></b></div><div class="row"><span>Рыночная цена</span><b id="market"></b></div><button id="buy">Купить автомобиль</button><button id="repairBtn" disabled>Починить</button><button id="sell" disabled>Продать</button></div>
+<div class="card"><b>История</b><div id="log"></div></div>
+</div>
+<script>
+let money=10000,rep=1,sold=0,current=null,repaired=false;
+const cars=[['Lada Priora',2500,800,4200],['BMW E46',4200,1100,6500],['Volkswagen Passat B6',5200,900,7200],['Honda Civic',4800,600,6800],['Audi A4',6500,1300,8500],['Mercedes C-Class',7200,1500,9800]];
+const $=id=>document.getElementById(id);function fmt(n){return '$'+Math.round(n).toLocaleString('en-US')}function log(t){$('log').innerHTML='<div>• '+t+'</div>'+$('log').innerHTML}
+function newCar(){repaired=false;let c=cars[Math.floor(Math.random()*cars.length)],f=.85+Math.random()*.3;current=[c[0],Math.round(c[1]*f),Math.round(c[2]*f),Math.round(c[3]*f)];$('carName').textContent='🚘 '+current[0];$('buyPrice').textContent=fmt(current[1]);$('repair').textContent=fmt(current[2]);$('market').textContent=fmt(current[3]);$('buy').disabled=false;$('repairBtn').disabled=true;$('sell').disabled=true}
+function render(){$('money').textContent=fmt(money);$('rep').textContent=rep;$('sold').textContent=sold}
+$('buy').onclick=()=>{if(money<current[1])return log('Не хватает денег.');money-=current[1];$('buy').disabled=true;$('repairBtn').disabled=false;log('Купил '+current[0]+'.');render()};
+$('repairBtn').onclick=()=>{if(money<current[2])return log('Не хватает денег на ремонт.');money-=current[2];repaired=true;$('repairBtn').disabled=true;$('sell').disabled=false;log('Починил автомобиль.');render()};
+$('sell').onclick=()=>{let price=current[3]*(repaired?1:.78),profit=price-current[1]-(repaired?current[2]:0);money+=price;sold++;if(profit>500)rep++;log('Продал за '+fmt(price)+' ('+(profit>=0?'+':'')+fmt(profit)+').');render();newCar()};
+newCar();render();
+</script>
+</body></html>
